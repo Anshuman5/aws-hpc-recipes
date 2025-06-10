@@ -134,6 +134,8 @@ Resources:
 
             packages:
             - amazon-efs-utils
+            - nvidia-driver
+            - nvidia-cuda-toolkit
             
             runcmd:
             # Mount EFS filesystem as /home
@@ -145,6 +147,13 @@ Resources:
             - rm -rf /tmp/home/
             # If provided, mount FSxL filesystem as /shared
             - if [ ! -z "${FSxLustreFilesystemId}" ]; then amazon-linux-extras install -y lustre=latest; mkdir -p /shared; chmod a+rwx /shared; mount -t lustre ${FSxLustreFilesystemId}.fsx.${AWS::Region}.amazonaws.com@tcp:/${FSxLustreFilesystemMountName} /shared; fi
+            # Install NVIDIA drivers and CUDA if GPU instance
+            - if [ -e /dev/nvidia0 ]; then
+            -   amazon-linux-extras install -y nvidia-driver
+            -   amazon-linux-extras install -y nvidia-cuda-toolkit
+            -   systemctl enable nvidia-persistenced
+            -   systemctl start nvidia-persistenced
+            - fi
 
             --==MYBOUNDARY==
 

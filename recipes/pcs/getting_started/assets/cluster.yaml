@@ -106,6 +106,8 @@ Mappings:
     ComputeNodeInstances:
       Graviton: c7g.xlarge
       x86: c6i.xlarge
+    GpuNodeInstances:
+      x86: g5.xlarge  # Using g5.xlarge as default GPU instance type
 
 Resources:
 
@@ -231,6 +233,25 @@ Resources:
       InstanceConfigs:
         - InstanceType: !FindInMap [ Architecture, ComputeNodeInstances, !Ref NodeArchitecture ]
 
+  # GPU Compute Node group
+  PCSNodeGroupGPU:
+    Type: AWS::PCS::ComputeNodeGroup
+    Properties:
+      ClusterId: !GetAtt [PCSCluster, Id]
+      Name: gpu-1
+      ScalingConfiguration:
+        MinInstanceCount: 0
+        MaxInstanceCount: 4
+      IamInstanceProfileArn: !GetAtt [ PCSInstanceProfile, Outputs.InstanceProfileArn ]
+      CustomLaunchTemplate:
+        TemplateId: !GetAtt [ PCSLaunchTemplate, Outputs.ComputeLaunchTemplateId ]
+        Version: 1
+      SubnetIds:
+        - !GetAtt [ Networking, Outputs.DefaultPrivateSubnet ]
+      AmiId: !GetAtt [PcsSampleAmi, AmiId]
+      InstanceConfigs:
+        - InstanceType: !FindInMap [ Architecture, GpuNodeInstances, !Ref NodeArchitecture ]
+
   PCSQueueCompute:
     Type: AWS::PCS::Queue
     Properties:
@@ -238,6 +259,14 @@ Resources:
       Name: demo
       ComputeNodeGroupConfigurations:
         - ComputeNodeGroupId: !GetAtt [PCSNodeGroupCompute, Id]
+
+  PCSQueueGPU:
+    Type: AWS::PCS::Queue
+    Properties:
+      ClusterId: !GetAtt [PCSCluster, Id]
+      Name: gpu
+      ComputeNodeGroupConfigurations:
+        - ComputeNodeGroupId: !GetAtt [PCSNodeGroupGPU, Id]
 
   PcsAMILookupRole:
     Type: AWS::IAM::Role
